@@ -10,10 +10,10 @@ import (
 func CreateRouter() error {
 	// ROUTER SET UP
 	router := gin.Default()
-	err := router.SetTrustedProxies([]string{"192.168.1.2"})
-	if err != nil {
-		return err
-	}
+	// err := router.SetTrustedProxies([]string{"192.168.1.2"})
+	// if err != nil {
+	// 	return err
+	// }
 
 	// ENDPOINTS
 	addRoutes(router)
@@ -23,7 +23,7 @@ func CreateRouter() error {
 
 	// Run the server
 	addres := IP + ":" + PORT
-	err = router.Run(addres)
+	err := router.Run(addres)
 	if err != nil {
 		log.Fatal("Error running the API")
 		return err
@@ -34,6 +34,7 @@ func CreateRouter() error {
 
 // Crete the routes
 func addRoutes(router *gin.Engine) {
+	router.GET("/", endpoints.Ping)
 	router.GET("/busqueda", endpoints.Search)
 	router.GET("/manga/:mangaName/:site", endpoints.MangaPage)
 }
