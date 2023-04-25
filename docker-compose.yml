@@ -1,0 +1,17 @@
+# https://raw.githubusercontent.com/dgraph-io/dgraph/master/contrib/config/docker/docker-compose.yml
+
+version: '3'
+services:
+  mang-go:
+    build: .
+    ports:
+      - 8080:8080
+  neo4j:
+    image: neo4j:latest
+    restart: unless-stopped
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
