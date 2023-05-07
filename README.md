@@ -17,8 +17,12 @@
     ```
 2. Create a new .env file in the root of the repository with the following scheme:
     ``` env
-    IP="localhost"
-    PORT="8080"
+    # API
+    API_IP="0.0.0.0"
+    API_PORT="7070"
+
+    # DB
+    DB_NAME="mango.sqlite3"
     ```
 3. Compile and run
     ``` bash
@@ -143,6 +147,7 @@ Example: /manga/jujutsu-kaisen/nyaa
 ```
 man-go
 ├───endpoints           <- endpoints functions
+├───gorm                <- gorm database functions
 ├───general_functions   <- handy custom functions
 ├───json                <- cached information
 ├───models              <- api's structs

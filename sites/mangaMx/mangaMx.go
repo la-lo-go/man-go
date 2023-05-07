@@ -34,7 +34,7 @@ func (mmx *MangaMX) GetMangas(searchValue string, searchedMangas []models.Manga)
 
 		doc.Find("._1-8M9").Each(func(i int, s *goquery.Selection) {
 			tag := s.Find("img").First()
-			mangaName, _ = generalFunctions.RemoveNonAlphanumeric(tag.AttrOr("alt", ""))
+			mangaName = tag.AttrOr("alt", "")
 			mangaCover = tag.AttrOr("src", "")
 		})
 
@@ -47,10 +47,12 @@ func (mmx *MangaMX) GetMangas(searchValue string, searchedMangas []models.Manga)
 		}
 
 		mangaChaptersNumber := 99 // TODO: hacer que no sean por defecto
+		mangaNameJoined, _ := generalFunctions.RemoveNonAlphanumeric(mangaName)
 
 		// Add the manga to the list
 		mangas = append(mangas, models.Manga{
 			Name:           mangaName,
+			NameJoined:     mangaNameJoined,
 			Site:           mangaSite,
 			Link:           mangaLink,
 			ChaptersNumber: mangaChaptersNumber,
@@ -62,7 +64,7 @@ func (mmx *MangaMX) GetMangas(searchValue string, searchedMangas []models.Manga)
 }
 
 // Returns the chapters of a manga avalible in a site
-func (mmx *MangaMX) GetMangaPage(name string, url string) (mangaPage models.MangaPage) {
+func (mmx *MangaMX) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
 	return mangaPage
 }
 

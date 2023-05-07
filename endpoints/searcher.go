@@ -2,18 +2,11 @@ package endpoints
 
 import (
 	"MAPIes/sites"
-	"MAPIes/sites/inManga"
-	"MAPIes/sites/mangaMx"
-	"MAPIes/sites/nyaa"
-	"MAPIes/sites/tuMangaNet"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
-
-	// "reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -23,7 +16,7 @@ import (
 
 var maxCoincidencesPerSite int
 
-const MAX_COINCIDENCE_DEFAULT = 1
+const MAX_COINCIDENCE_DEFAULT = 5
 const SEARCH_EXPIRE_HOURS = 24
 
 var jsonSearch = models.NewSearchCacheJson()
@@ -33,58 +26,69 @@ func Search(context *gin.Context) {
 	queryValues := context.Request.URL.Query()
 
 	searchStr := strings.ToLower(queryValues["search"][0])
+	searchStrFormatted, _ := general_functions.RemoveNonAlphanumeric(searchStr)
 
 	// check if queryValues["max"] has a value
-	if len(queryValues["max"]) > 0 {
-		maxCoincidencesPerSite, _ = strconv.Atoi(queryValues["max"][0])
+	if len(queryValues["max"]) > 0 && queryValues["max"][0] != "" && queryValues["max"][0] != "0" {
+		requestedMaxCoincidencesPerSite, _ := strconv.Atoi(queryValues["max"][0])
+
+		if requestedMaxCoincidencesPerSite < MAX_COINCIDENCE_DEFAULT {
+			maxCoincidencesPerSite, _ = strconv.Atoi(queryValues["max"][0])
+		} else {
+			maxCoincidencesPerSite = MAX_COINCIDENCE_DEFAULT
+		}
 	} else {
 		maxCoincidencesPerSite = MAX_COINCIDENCE_DEFAULT
 	}
 
-	jsonReturn, searchInJson := findSearchInJson(searchStr)
+	response, searchInJsonResult := findSearchInJson(searchStrFormatted)
 
-	switch searchInJson {
-	case "NotFound":
-		jsonReturn = searchMangas(searchStr)
-		dumpSearchToJson(searchStr, jsonReturn)
+	// If the search in the database is not found or is partial
+	switch searchInJsonResult {
 	case "Partial":
-		jsonReturn = filterPartial(jsonReturn, searchStr)
+		response = filterPartial(response, searchStrFormatted)
+	case "NotFound":
+		response = searchMangas(searchStr)
+		dumpSearchToJson(searchStr, response)
 	}
 
-	if len(jsonReturn) > 0 {
-		dumpLinksToJson(jsonReturn)
+	if len(response) > 0 {
+		dumpLinksToJson(response)
+
 		// trim to return only de Max amount of coincidences
-		context.IndentedJSON(http.StatusOK, trimMangas(jsonReturn))
-	} else {
+		context.IndentedJSON(http.StatusOK, trimMangasToMaxPerSize(response))
+	} else { // If no mangas are found
 		context.IndentedJSON(http.StatusNotFound, []models.Manga{})
 	}
 }
 
+// Find the search in the database and return a status string.
+// Possible status: "Exact", "Partial", "NotFound"
 func findSearchInJson(searchStr string) ([]models.Manga, string) {
-	var jsonSlice []models.ApiSearch
+	var jsonSlice []models.Search
 
 	// Format the search to match the json format
 	searchStr, _ = general_functions.RemoveNonAlphanumeric(searchStr)
 
 	jsonFile, err := jsonSearch.Read()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	err = json.Unmarshal(jsonFile, &jsonSlice)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	if len(jsonSlice) > 0 {
 		for _, s := range jsonSlice {
-			if strings.Contains(searchStr, s.Search) && time.Since(s.Date) < time.Duration(SEARCH_EXPIRE_HOURS)*time.Hour { // Check if the searchStr is a substr of a cached search
+			if strings.Contains(searchStr, s.Search) { // Check if the searchStr is a substr of a cached search
 				if searchStr == s.Search { // Check if the searchStr is the same as a cached search
-					fmt.Println("\n\n>>>> [json/searchBuffer.json]: Exact match found")
-					return s.Response, "Exact"
+					log.Println("\n>>>> [json/searchBuffer.json]: Exact match found")
+					return s.Mangas, "Exact"
 				} else {
-					fmt.Println("\n\n>>>> [json/searchBuffer.json]: Partial match found")
-					return s.Response, "Partial"
+					log.Println("\n>>>> [json/searchBuffer.json]: Partial match found")
+					return s.Mangas, "Partial"
 				}
 			}
 		}
@@ -94,21 +98,12 @@ func findSearchInJson(searchStr string) ([]models.Manga, string) {
 }
 
 func searchMangas(searchStr string) []models.Manga {
-
-	// Classes of different sites to search on
-	sitesClasses := []sites.IntSite{
-		&inManga.InManga{},
-		&nyaa.Nyaa{},
-		&tuMangaNet.TuMangaNet{},
-		&mangaMx.MangaMX{},
-	}
-
 	var searchedMangas []models.Manga
 
-	fmt.Printf("\n\nNueva busqueda: " + searchStr)
+	log.Println("New search: " + searchStr)
 
-	// iterate through sitesClasses
-	for _, s := range sitesClasses {
+	// iterate through sitesTypes
+	for _, s := range sites.SitesTypes {
 		siteSearchMangas := searchBySite(s, searchStr, searchedMangas)
 		searchedMangas = append(searchedMangas, siteSearchMangas...)
 	}
@@ -121,7 +116,7 @@ func searchBySite(s sites.IntSite, searchStr string, searchedMangas []models.Man
 	actualSiteMangas, _ := s.GetMangas(searchStr, searchedMangas)
 
 	// Print the site and the found mangas
-	// fmt.Printf("\n>>>> [%s RETURN]: %#v\n\n", reflect.TypeOf(s), actualSiteMangas)
+	// log.Println(">>>> [%s RETURN]: %#v\n\n", reflect.TypeOf(s), actualSiteMangas)
 
 	return actualSiteMangas
 }
@@ -137,7 +132,9 @@ func clearMangas(searchedMangas []models.Manga) (clearedMangas []models.Manga) {
 	return clearedMangas
 }
 
-func trimMangas(searchedMangas []models.Manga) (trimmedMangas []models.Manga) {
+
+// Trim the mangas to return only the max amount of coincidences PER SITE
+func trimMangasToMaxPerSize(searchedMangas []models.Manga) (trimmedMangas []models.Manga) {
 
 	// count the times that the same Manga.Site is found
 	mangasCount := map[string]int{}
@@ -155,29 +152,38 @@ func trimMangas(searchedMangas []models.Manga) (trimmedMangas []models.Manga) {
 func filterPartial(enterSlice []models.Manga, searchStr string) (exitSlice []models.Manga) {
 	// Filters the mangas that contains the search string
 	for _, m := range enterSlice {
-		if strings.Contains(strings.ToLower(m.Name), searchStr) {
+		formatedName, _ := general_functions.RemoveNonAlphanumeric(m.Name)
+
+		if strings.Contains(formatedName, searchStr) {
 			exitSlice = append(exitSlice, m)
 		}
 	}
 
 	// Trim results and return them
-	return trimMangas(exitSlice)
+	return exitSlice
 }
 
-func dumpSearchToJson(searchStr string, response []models.Manga) {
-	var jsonSlice []models.ApiSearch
+func dumpSearchToJson(searchStr string, mangas []models.Manga) {
+	var jsonSlice []models.Search
+	searchStrFormatted, _ := general_functions.RemoveNonAlphanumeric(searchStr)
 
 	jsonFile, err := jsonSearch.Read()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	err = json.Unmarshal(jsonFile, &jsonSlice)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Println("error:", err)
 	}
 
-	jsonSlice = append(jsonSlice, models.ApiSearch{Search: searchStr, Date: time.Now(), Response: response})
+	jsonSlice = append(
+		jsonSlice,
+		models.Search{
+			Search: searchStrFormatted,
+			Mangas: mangas,
+		},
+	)
 
 	err = jsonSearch.Write(jsonSlice)
 	if err != nil {
@@ -192,12 +198,12 @@ func dumpLinksToJson(response []models.Manga) {
 
 	jsonFile, err := jsonLinks.Read()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	err = json.Unmarshal(jsonFile, &jsonLinksCopy)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	// Initialize the jsonLinksCopy map if is empty
@@ -222,21 +228,33 @@ func dumpLinksToJson(response []models.Manga) {
 			}
 
 			if !siteFound { // If the site is not in the list of the manga, add it
-				mangaLinks.SitesLinks = append(mangaLinks.SitesLinks, models.SiteLink{Site: m.Site, Link: m.Link})
+				mangaLinks.SitesLinks = append(
+					mangaLinks.SitesLinks,
+					models.SiteLink{
+						Site: m.Site,
+						Link: m.Link,
+					},
+				)
 
 				jsonLinksCopy[mangaName], err = json.Marshal(mangaLinks)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 				}
 			}
 
 		} else { // There is no coincidence, create a new entry
-			siteLink = models.SiteLink{Site: m.Site, Link: m.Link}
-			mangaLinks = models.MangaLinksClustered{Name: m.Name, SitesLinks: []models.SiteLink{siteLink}}
+			siteLink = models.SiteLink{
+				Site: m.Site,
+				Link: m.Link,
+			}
+			mangaLinks = models.MangaLinksClustered{
+				Name:       m.Name,
+				SitesLinks: []models.SiteLink{siteLink},
+			}
 
 			jsonLinksCopy[mangaName], err = json.Marshal(mangaLinks)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		}
 	}

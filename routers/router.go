@@ -18,8 +18,8 @@ func CreateRouter() error {
 	// ENDPOINTS
 	addRoutes(router)
 
-	IP := os.Getenv("IP")
-	PORT := os.Getenv("PORT")
+	IP := os.Getenv("API_IP")
+	PORT := os.Getenv("API_PORT")
 
 	// Run the server
 	addres := IP + ":" + PORT

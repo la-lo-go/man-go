@@ -43,7 +43,8 @@ func (n *Nyaa) GetMangas(searchValue string, searchedMangas []models.Manga) ([]m
 		manga := new(models.Manga)
 
 		for _, m := range filtered {
-			manga.Name, _ = generalFunctions.RemoveNonAlphanumeric(m.Name)
+			manga.Name = m.Name
+			manga.NameJoined, _ = generalFunctions.RemoveNonAlphanumeric(m.Name)
 			manga.Site = "Nyaa"
 			manga.Link = "https://manganyaa.com/" + m.JoinedName + "/leer-online-gratis-espanol"
 			mangaChaptersNumber := "99" //TODO: Get the number of chapters of the manga
@@ -140,7 +141,7 @@ func filterMangas(searchStr string, listaMangas []NyaaSearch) []NyaaSearch {
 }
 
 // GetMangaPage returns the chapters of a manga avalible in a site
-func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.MangaPage) {
+func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
 	var numberParsed string
 	jsonResponse := NyaaMangaPage{}
 	urlRequest := NYAA_GIT_RESPOSITORY + "series/" + name + "/" + NYAA_GIT_MANGA_JSON

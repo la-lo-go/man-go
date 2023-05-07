@@ -55,7 +55,7 @@ func MangaPage(context *gin.Context) {
 		}
 
 	} else {
-		context.IndentedJSON(http.StatusNotFound, []models.MangaPage{})
+		context.IndentedJSON(http.StatusNotFound, []models.MangaInfo{})
 	}
 }
 

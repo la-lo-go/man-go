@@ -30,7 +30,8 @@ func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Man
 	// Iterate through the mangas
 	doc.Find(MANGA_NET_MANGA_CLASS).Each(func(i int, s *goquery.Selection) {
 		// For each item found, get the mangas
-		mangaName, _ := generalFunctions.RemoveNonAlphanumeric(s.Find("a").Text())
+		mangaName := s.Find("a").Text()
+		mangaNameJoined, _ := generalFunctions.RemoveNonAlphanumeric(mangaName)
 		mangaSite := "TuManga.net"
 
 		// Construct the URL
@@ -47,6 +48,7 @@ func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Man
 		// Add the manga to the list
 		mangas = append(mangas, models.Manga{
 			Name:           mangaName,
+			NameJoined:     mangaNameJoined,
 			Site:           mangaSite,
 			Link:           mangaLink,
 			ChaptersNumber: mangaChaptersNumber,
@@ -58,7 +60,7 @@ func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Man
 }
 
 // Returns the chapters of a manga avalible in a site
-func (tmn *TuMangaNet) GetMangaPage(name string, url string) (mangaPage models.MangaPage) {
+func (tmn *TuMangaNet) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
 	return mangaPage
 }
 

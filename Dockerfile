@@ -14,12 +14,8 @@ RUN go mod download
 COPY . .
 
 # Set environment variables for port and IP
-ENV PORT=8080
+ENV PORT=7777
 ENV IP=0.0.0.0
-ENV NEO4J_HOST=localhost
-ENV NEO4J_HOST_PORT=7474
-ENV NEO4J_USER=neo4j
-ENV NEO4J_PASSWORD=neo4j
 
 # Build the Go application
 RUN go build -o main .
