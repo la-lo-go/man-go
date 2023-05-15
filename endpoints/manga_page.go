@@ -3,7 +3,7 @@ package endpoints
 import (
 	"MAPIes/sites"
 	"MAPIes/sites/inManga"
-	"MAPIes/sites/mangaMx"
+	"MAPIes/sites/mangaOni"
 	"MAPIes/sites/nyaa"
 	"MAPIes/sites/tuMangaNet"
 	"encoding/json"
@@ -30,7 +30,7 @@ func MangaPage(context *gin.Context) {
 		siteObj = &inManga.InManga{}
 
 	case "mangamx":
-		siteObj = &mangaMx.MangaMX{}
+		siteObj = &mangaOni.MangaOni{}
 
 	case "nyaa":
 		siteObj = &nyaa.Nyaa{}

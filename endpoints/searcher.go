@@ -10,13 +10,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"MAPIes/general_functions"
 	"MAPIes/models"
+	"MAPIes/utils"
+	// "MAPIes/gorm"
 )
 
 var maxCoincidencesPerSite int
 
-const MAX_COINCIDENCE_DEFAULT = 5
+const MAX_COINCIDENCE_DEFAULT = 10
 const SEARCH_EXPIRE_HOURS = 24
 
 var jsonSearch = models.NewSearchCacheJson()
@@ -26,7 +27,7 @@ func Search(context *gin.Context) {
 	queryValues := context.Request.URL.Query()
 
 	searchStr := strings.ToLower(queryValues["search"][0])
-	searchStrFormatted, _ := general_functions.RemoveNonAlphanumeric(searchStr)
+	searchStrFormatted, _ := utils.RemoveNonAlphanumeric(searchStr)
 
 	// check if queryValues["max"] has a value
 	if len(queryValues["max"]) > 0 && queryValues["max"][0] != "" && queryValues["max"][0] != "0" {
@@ -49,7 +50,7 @@ func Search(context *gin.Context) {
 		response = filterPartial(response, searchStrFormatted)
 	case "NotFound":
 		response = searchMangas(searchStr)
-		dumpSearchToJson(searchStr, response)
+		dumpSearchToDB(searchStr, response)
 	}
 
 	if len(response) > 0 {
@@ -68,7 +69,7 @@ func findSearchInJson(searchStr string) ([]models.Manga, string) {
 	var jsonSlice []models.Search
 
 	// Format the search to match the json format
-	searchStr, _ = general_functions.RemoveNonAlphanumeric(searchStr)
+	searchStr, _ = utils.RemoveNonAlphanumeric(searchStr)
 
 	jsonFile, err := jsonSearch.Read()
 	if err != nil {
@@ -94,7 +95,8 @@ func findSearchInJson(searchStr string) ([]models.Manga, string) {
 		}
 	}
 
-	return nil, "NotFound" // If the searchStr is not found in the json file
+	// If the searchStr is not found in the json file
+	return nil, "NotFound"
 }
 
 func searchMangas(searchStr string) []models.Manga {
@@ -132,7 +134,6 @@ func clearMangas(searchedMangas []models.Manga) (clearedMangas []models.Manga) {
 	return clearedMangas
 }
 
-
 // Trim the mangas to return only the max amount of coincidences PER SITE
 func trimMangasToMaxPerSize(searchedMangas []models.Manga) (trimmedMangas []models.Manga) {
 
@@ -152,7 +153,7 @@ func trimMangasToMaxPerSize(searchedMangas []models.Manga) (trimmedMangas []mode
 func filterPartial(enterSlice []models.Manga, searchStr string) (exitSlice []models.Manga) {
 	// Filters the mangas that contains the search string
 	for _, m := range enterSlice {
-		formatedName, _ := general_functions.RemoveNonAlphanumeric(m.Name)
+		formatedName, _ := utils.RemoveNonAlphanumeric(m.Name)
 
 		if strings.Contains(formatedName, searchStr) {
 			exitSlice = append(exitSlice, m)
@@ -163,9 +164,9 @@ func filterPartial(enterSlice []models.Manga, searchStr string) (exitSlice []mod
 	return exitSlice
 }
 
-func dumpSearchToJson(searchStr string, mangas []models.Manga) {
+func dumpSearchToDB(searchStr string, mangas []models.Manga) {
 	var jsonSlice []models.Search
-	searchStrFormatted, _ := general_functions.RemoveNonAlphanumeric(searchStr)
+	searchStrFormatted, _ := utils.RemoveNonAlphanumeric(searchStr)
 
 	jsonFile, err := jsonSearch.Read()
 	if err != nil {
@@ -189,6 +190,11 @@ func dumpSearchToJson(searchStr string, mangas []models.Manga) {
 	if err != nil {
 		return
 	}
+
+	// err = gorm.UploadSearch(jsonSlice[0])
+	// if err != nil {
+	// 	return
+	// }
 }
 
 func dumpLinksToJson(response []models.Manga) {
@@ -212,7 +218,7 @@ func dumpLinksToJson(response []models.Manga) {
 	}
 
 	for _, m := range response {
-		mangaName, _ := general_functions.RemoveNonAlphanumeric(m.Name)
+		mangaName, _ := utils.RemoveNonAlphanumeric(m.Name)
 		mangaName = strings.ToLower(mangaName)
 
 		// Find if there is a coincided with the same name

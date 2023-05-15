@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	generalFunctions "MAPIes/general_functions"
 	models "MAPIes/models"
+	generalFunctions "MAPIes/utils"
 )
 
 // const MANGAS_NAMES_NYAA_JSON_ROUTE = "json/mangasNamesNyaa.json"

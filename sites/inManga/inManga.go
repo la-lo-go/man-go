@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"MAPIes/general_functions"
 	"MAPIes/models"
+	"MAPIes/utils"
 )
 
 type InManga struct{}
@@ -26,7 +26,7 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 	payload := strings.NewReader(`filter%5Bgeneres%5D%5B%5D=-1&filter%5BqueryString%5D=+` + searchStringFormated + `+&filter%5Bskip%5D=0&filter%5Btake%5D=10&filter%5Bsortby%5D=1&filter%5BbroadcastStatus%5D=0&filter%5BonlyFavorites%5D=false&d=`)
 
 	// Consigue el HTML de la pagina
-	doc, err := general_functions.GetHtmlFromPost(url, payload)
+	doc, err := utils.GetHtmlFromPost(url, payload)
 	if err != nil {
 		fmt.Println(err)
 		return []models.Manga{}, err
@@ -39,7 +39,7 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 
 		// Get manga attributes
 		mangaName := strings.Trim(s.Find(".m0").First().Text(), " ")
-		mangaNameJoined, _ := general_functions.RemoveNonAlphanumeric(strings.Trim(mangaName, " "))
+		mangaNameJoined, _ := utils.RemoveNonAlphanumeric(strings.Trim(mangaName, " "))
 		mangaSite := "InManga"
 		mangaLink := "https://inmanga.com/ver/manga/" + mangaID
 		mangaChaptersNumber, _ := strconv.Atoi(s.Find(".icon-info text-muted").First().Text())
@@ -66,7 +66,7 @@ func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga
 	mangaID := urlSplit[len(urlSplit)-1]
 
 	urlRequest := INMANGA_GET_ALL_URL + mangaID
-	response, err := general_functions.GetJsonFromGet(urlRequest)
+	response, err := utils.GetJsonFromGet(urlRequest)
 
 	if err != nil {
 		fmt.Println(err)

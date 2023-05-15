@@ -29,3 +29,13 @@ func Init() {
 
 	log.Println("Database initialized")
 }
+
+func UploadSearch(search models.Search) (err error) {
+	result := db.Create(&search)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}

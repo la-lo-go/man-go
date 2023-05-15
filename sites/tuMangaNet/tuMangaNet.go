@@ -5,8 +5,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"strings"
 
-	generalFunctions "MAPIes/general_functions"
 	models "MAPIes/models"
+	generalFunctions "MAPIes/utils"
 )
 
 const MANGA_NET_DOMAIN = "https://tumanga.net"
