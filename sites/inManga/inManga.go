@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"sort"
-	// "io/ioutil"
-	// "net/http"
 	"strconv"
 	"strings"
 
+	"MAPIes/gorm"
 	"MAPIes/models"
 	"MAPIes/utils"
 )
@@ -62,8 +61,7 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
 	jsonResponse := InMangaMangaPage{}
 
-	urlSplit := strings.Split(url, "/")
-	mangaID := urlSplit[len(urlSplit)-1]
+	mangaID := extractInMangaID(url)
 
 	urlRequest := INMANGA_GET_ALL_URL + mangaID
 	response, err := utils.GetJsonFromGet(urlRequest)
@@ -105,7 +103,66 @@ func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga
 		return mangaPage.ChaptersListed[i].Number < mangaPage.ChaptersListed[j].Number
 	})
 
+	err = dumpMangaToDB(mangaPage)
+	if err != nil {
+		return mangaPage
+	}
+
 	return mangaPage
+}
+
+func extractInMangaID(url string) (ID string) {
+	urlSplit := strings.Split(url, "/")
+	ID = urlSplit[len(urlSplit)-1]
+
+	return ID
+}
+
+func dumpMangaToDB(page models.MangaInfo) error {
+	// Search for the manga in the json if is already there
+	manga, err := searchManga(page.Name)
+	if err != nil {
+		return err
+	}
+
+	if manga.MangaName == "" { // If the manga is not there, add it
+		manga.MangaName, _ = utils.RemoveNonAlphanumeric(page.Name)
+		manga.Chapters = fromChapterListedToInMangaChapter(page.ChaptersListed)
+
+		err = gorm.AddInManga(manga)
+		if err != nil {
+			return err
+		}
+	} else { // If the manga is there, update it
+		manga.Chapters = fromChapterListedToInMangaChapter(page.ChaptersListed)
+		err = gorm.UpdateInManga(manga)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Search for the manga in inMangaChaptersJson if is already there by nameJoined
+func searchManga(name string) (manga models.InMangaManga, err error) {
+	nameJoined, err := utils.RemoveNonAlphanumeric(name)
+	if err != nil {
+		return manga, err
+	}
+
+	return gorm.SearchInManga(nameJoined)
+}
+
+func fromChapterListedToInMangaChapter(listed []models.ChapterListed) (chapters []models.InMangaChapter) {
+	for _, chapter := range listed {
+		chapters = append(chapters, models.InMangaChapter{
+			Number: chapter.Number,
+			ID:     extractInMangaID(chapter.LinkOriginal),
+		})
+	}
+
+	return chapters
 }
 
 // Returns the pages of a chapter of a manga

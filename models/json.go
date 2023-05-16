@@ -2,8 +2,8 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -44,16 +44,16 @@ func (j Json) Check() (bool, error) {
 	fileInfo, err := os.Stat(j.Path)
 
 	if err != nil {
-		fmt.Printf("\n>>>> [" + j.Path + "]: Creating \n\n")
+		log.Printf("\n>>>> [" + j.Path + "]: Creating \n\n")
 		return false, err
 	}
 
 	// The file has been updated in the last expireTime hours or if the expireTime is 0 (infinite)
 	if j.ExpireTime == 0 || time.Since(fileInfo.ModTime()) < time.Duration(j.ExpireTime)*time.Hour {
-		fmt.Printf("\n>>>> [" + j.Path + "]: Up to date\n\n")
+		log.Printf("\n>>>> [" + j.Path + "]: Up to date\n\n")
 		return true, nil
 	} else {
-		fmt.Printf("\n>>>>[" + j.Path + "]: Updating \n\n")
+		log.Printf("\n>>>>[" + j.Path + "]: Updating \n\n")
 		return false, nil
 	}
 }
@@ -66,31 +66,35 @@ func (j Json) Read() ([]byte, error) {
 		err = j.Write(nil)
 
 		if err != nil {
-			fmt.Println(err)
 			return []byte{}, err
 		}
 	}
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	jsonFile.Close()
+	byteValue, err := io.ReadAll(jsonFile)
+	if err != nil {
+		return nil, err
+	}
+
+	err = jsonFile.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	return byteValue, nil
 }
 
 /*
- Writes the slice 'T' in the json file
+Writes the slice 'T' in the json file
 */
 func (j Json) Write(T interface{}) error {
 	jsonByte, err := json.Marshal(T)
 
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
 	err = j.save(jsonByte)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -99,23 +103,21 @@ func (j Json) Write(T interface{}) error {
 
 func (j Json) save(jsonByte []byte) error {
 	// See if the folder 'json' exists
-	_, err := ioutil.ReadDir("json")
+	_, err := os.ReadDir("json")
 
 	if err != nil {
 		// Create the folder 'json'
 		err = os.Mkdir("json", os.ModePerm)
 
 		if err != nil {
-			fmt.Println(err)
 			return err
 		}
 	}
 
 	// Write the json file with jsonByte
-	err = ioutil.WriteFile(j.Path, jsonByte, 0644)
+	err = os.WriteFile(j.Path, jsonByte, 0644)
 
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

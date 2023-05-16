@@ -1,4 +1,4 @@
-package inManga
+package models
 
 import (
 	"gorm.io/gorm"
