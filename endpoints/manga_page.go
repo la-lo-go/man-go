@@ -7,7 +7,6 @@ import (
 	"MAPIes/sites/nyaa"
 	"MAPIes/sites/tuMangaNet"
 	"encoding/json"
-	"reflect"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +28,7 @@ func MangaPage(context *gin.Context) {
 	case "inmanga":
 		siteObj = &inManga.InManga{}
 
-	case "mangamx":
+	case "mangaOni":
 		siteObj = &mangaOni.MangaOni{}
 
 	case "nyaa":
@@ -41,8 +40,6 @@ func MangaPage(context *gin.Context) {
 	default:
 		siteObj = nil
 	}
-
-	fmt.Println(reflect.TypeOf(siteObj))
 
 	if siteObj != nil {
 		// Search the url from the site in JSON
