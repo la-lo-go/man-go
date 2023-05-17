@@ -36,5 +36,6 @@ func CreateRouter() error {
 func addRoutes(router *gin.Engine) {
 	router.GET("/", endpoints.Ping)
 	router.GET("/busqueda", endpoints.Search)
-	router.GET("/manga/:mangaName/:site", endpoints.MangaPage)
+	router.GET("/manga/:site/:mangaName", endpoints.MangaPage)
+	router.GET("/manga/:site/:mangaName/:chapterNumber", endpoints.MangaChapter)
 }
