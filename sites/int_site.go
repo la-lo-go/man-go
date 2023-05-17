@@ -11,7 +11,7 @@ import (
 type IntSite interface {
 	GetMangas(searchStr string, searchedMangas []models.Manga) ([]models.Manga, error)
 	GetMangaPage(name string, url string) models.MangaInfo
-	GetChapter(name string, chapterNum int) models.Chapter
+	GetChapter(name string, chapterNum float64) models.Chapter
 }
 
 // SitesTypes is a slice of all the supported sites.

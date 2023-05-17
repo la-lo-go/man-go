@@ -184,6 +184,6 @@ func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.MangaInfo
 }
 
 // Returns the pages of a chapter of a manga
-func (n *Nyaa) GetChapter(name string, chapterNum int) (chapter models.Chapter) {
+func (n *Nyaa) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
 	return chapter
 }

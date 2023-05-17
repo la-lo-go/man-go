@@ -65,6 +65,6 @@ func (tmn *TuMangaNet) GetMangaPage(name string, url string) (mangaPage models.M
 }
 
 // Returns the pages of a chapter of a manga
-func (tmn *TuMangaNet) GetChapter(name string, chapterNum int) (chapter models.Chapter) {
+func (tmn *TuMangaNet) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
 	return chapter
 }

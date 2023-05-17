@@ -68,6 +68,6 @@ func (mmx *MangaOni) GetMangaPage(name string, url string) (mangaPage models.Man
 }
 
 // Returns the pages of a chapter of a manga
-func (mmx *MangaOni) GetChapter(name string, chapterNum int) (chapter models.Chapter) {
+func (mmx *MangaOni) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
 	return chapter
 }
