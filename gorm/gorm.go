@@ -72,3 +72,14 @@ func UpdateInManga(manga models.InMangaManga) (err error) {
 	db.Commit()
 	return nil
 }
+
+func FindInMangaChapterID(name string, chapterNum float64) (chapter models.InMangaChapter) {
+	manga, err := SearchInManga(name)
+	if err != nil {
+		return chapter
+	}
+
+	db.Where("in_manga_manga_id = ? AND number = ?", manga.ID, chapterNum).First(&chapter)
+
+	return chapter
+}
