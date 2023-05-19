@@ -6,4 +6,4 @@ services:
     container_name: man-go
     build: .
     ports:
-      - "7777:7777"
+      - "7070:7070"
