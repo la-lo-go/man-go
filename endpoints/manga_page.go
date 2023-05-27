@@ -1,18 +1,17 @@
 package endpoints
 
 import (
+	"MAPIes/gorm"
 	"MAPIes/sites"
 	"MAPIes/sites/inManga"
 	"MAPIes/sites/mangaOni"
 	"MAPIes/sites/nyaa"
 	"MAPIes/sites/tuMangaNet"
-	"encoding/json"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"MAPIes/models"
-	"fmt"
 	"net/http"
 )
 
@@ -43,7 +42,7 @@ func MangaPage(context *gin.Context) {
 
 	if siteObj != nil {
 		// Search the url from the site in JSON
-		url := searchMangaURL(mangaName, site)
+		url := gorm.SearchMangaURL(mangaName, site)
 
 		if url != "" {
 			context.IndentedJSON(http.StatusOK, siteObj.GetMangaPage(mangaName, url))
@@ -54,38 +53,4 @@ func MangaPage(context *gin.Context) {
 	} else {
 		context.IndentedJSON(http.StatusNotFound, []models.MangaInfo{})
 	}
-}
-
-// search the url of the manga in the API_linksMangas.json
-// file based on the name and the site and return the url
-func searchMangaURL(mangaName string, siteName string) string {
-	var jsonLinksCopy map[string]json.RawMessage
-	var mangaLinks models.MangaLinksClustered
-
-	jsonFile, err := jsonLinks.Read()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = json.Unmarshal(jsonFile, &jsonLinksCopy)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	if jsonLinksCopy == nil {
-		jsonLinksCopy = make(map[string]json.RawMessage)
-	}
-
-	// Find if there is a coincidence with the same name
-	err = json.Unmarshal(jsonLinksCopy[mangaName], &mangaLinks)
-	if err == nil { // There is a coincidence, get the link from the site
-		for _, sl := range mangaLinks.SitesLinks {
-			if strings.ToLower(sl.Site) == siteName {
-				return sl.Link
-			}
-		}
-	}
-
-	// If there is no coincidence, return an empty string
-	return ""
 }
