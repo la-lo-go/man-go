@@ -1,16 +1,23 @@
 # Man-go
 
 ## Work in progress, currently arround 50% until 1.0 release
-|                | **GetMangas** | **GetMangaPage** | **GetChapter** |
-| :------------: | :-----------: | :--------------: | :------------: |
-|  **In Manga**  |       ✅       |        ✅         |       ❌        |
-|    **Nyaa**    |       ✅       |        ✅         |       ❌        |
-|  **Manga MX**  |       ✅       |        ❌         |       ❌        |
-| **TuMangaNet** |       ✅       |        ❌         |       ❌        |
+|               | **GetMangas**  | **GetMangaPage**  |  **GetChapter**  |
+| :-----------: | :-----------:  | :--------------:  |  :------------:  |
+| **In Manga**  |       ✅       |        ✅         |       ✅        |
+|   **Nyaa**    |       ✅       |        ✅         |       ❌        |
+| **Manga Oni** |       ✅       |        ❌         |       ❌        |
 
-![](https://miro.medium.com/max/1100/0*QamUdvAd_-mDNIlD.gif)
+# Run in Docker-compose
+```docker
+version: '3.8'
+services:
+    man-go:
+        image: man-go
+        ports:
+        - "7070:7070"
+```
 
-## Run the API
+## Clone and run the repository
 1. Clone the repository
     ``` bash
     git clone https://github.com/la-lo-go/man-go
@@ -67,7 +74,7 @@ Example: /busqueda?search=jujutsu&max=1
 ### Manga Page
 #### Query
 ```
-/manga/[manga_name]/[site]
+/manga/[site]/[manga_name]
 ```
 #### Response
 ```json
@@ -101,45 +108,11 @@ Example: /manga/jujutsu-kaisen/nyaa
 ```
 
 ## Cache
-- `API_searchCache.json`: all the results of the searches with the date.
+- `searches` table: all the results of the searches with the date.
   - The search is exact: the results are returned.
   - The has a key that is included in the search: the results are filtered.
   - Else: do a full search
-``` json
-[
-    {
-        "search": "shingeki no",
-        "date": "2022-08-08T21:00:10.7641581+02:00",
-        "response": [Search response]
-    },
-    {
-        "search": "isekai",
-        "date": "2022-08-10T16:30:51.9044505+02:00",
-        "response": [Search response]
-    }
-]
-```
 
-- `API_linksMangas.json`: Group all the results with the same name.
-``` json
-"jujutsu-kaisen": {      <- search string, map key
-    "name": "jujutsu-kaisen",
-    "sitesLinks": [
-      {
-        "site": "InManga",
-        "link": "https://inmanga.com/ver/manga/Jujutsu-Kaisen/d88692a5-c341-47fc-8e39-da11a8fdee82"
-      },
-      {
-        "site": "Nyaa",
-        "link": "https://manganyaa.com/jujutsu-kaisen/leer-online-gratis-espanol"
-      },
-      {
-        "site": "TuManga.net",
-        "link": "https://tumanga.net/manga/jujutsu-kaisen"
-      }
-    ]
-}
-```
 - `API_linksMangas.json`: JSON returned by the Nyaa API with all the mangas listed in the page. Has a 12 hour expire time.
 
 
