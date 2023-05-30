@@ -15,6 +15,10 @@ const MANGA_ONI_MANGA_IMAGE_CLASS = "._1-8M9"
 
 type MangaOni struct{}
 
+func (mmx *MangaOni) SiteName() string {
+	return "mangaoni"
+}
+
 // Returns the mangas of a site that match the search
 func (mmx *MangaOni) GetMangas(searchValue string, searchedMangas []models.Manga) (mangas []models.Manga, err error) {
 	searchStringFormated := strings.Replace(searchValue, " ", "+", -1)
@@ -39,7 +43,7 @@ func (mmx *MangaOni) GetMangas(searchValue string, searchedMangas []models.Manga
 			mangaCover = tag.AttrOr("src", "")
 		})
 
-		mangaSite := "MangaOni"
+		mangaSite := mmx.SiteName()
 
 		mangaLink, boo := s.Find("a").First().Attr("href")
 		if !boo {

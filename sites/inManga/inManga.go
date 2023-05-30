@@ -14,12 +14,16 @@ import (
 	"MAPIes/utils"
 )
 
-type InManga struct{}
-
 const INMANGA_THUMBNAIL_URL = "https://pack-yak.intomanga.com/thumbnails/manga/"
 const INMANGA_GET_ALL_URL = "https://inmanga.com/chapter/getall?mangaIdentification="
 const INMANGA_CHAPTERS_INDEX_URL = "https://inmanga.com/chapter/chapterIndexControls?identification="
 const INMANGA_PAGE_URL = "https://pack-yak.intomanga.com/images/manga/Name/chapter/NumberChapter/page/NumberPage/"
+
+type InManga struct{}
+
+func (in *InManga) SiteName() string {
+	return "inmanga"
+}
 
 // GetMangas Returns the mangas of a site that match the search
 func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) (mangas []models.Manga, err error) {
@@ -42,7 +46,7 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 		// Get manga attributes
 		mangaName := strings.Trim(s.Find(".m0").First().Text(), " ")
 		mangaNameJoined, _ := utils.RemoveNonAlphanumeric(strings.Trim(mangaName, " "))
-		mangaSite := "InManga"
+		mangaSite := in.SiteName()
 		mangaLink := "https://inmanga.com/ver/manga/" + mangaID
 		mangaChaptersNumber, _ := strconv.Atoi(s.Find(".icon-info text-muted").First().Text())
 		mangaCover := INMANGA_THUMBNAIL_URL + mangaID
@@ -85,7 +89,7 @@ func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga
 	}
 
 	mangaPage.Name = name
-	mangaPage.Site = "InManga"
+	mangaPage.Site = in.SiteName()
 	mangaPage.Cover = INMANGA_THUMBNAIL_URL + mangaID // TODO: Ver si esta bien
 
 	for _, chapter := range jsonResponse.Data.Result {
@@ -171,7 +175,7 @@ func fromChapterListedToInMangaChapter(listed []models.ChapterListed) (chapters 
 // Returns the pages of a chapter of a manga
 func (in *InManga) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
 	chapter.Name = name
-	chapter.Site = "InManga"
+	chapter.Site = in.SiteName()
 	chapter.Number = chapterNum
 
 	chapterDB := gorm.FindInMangaChapterID(name, chapterNum)
@@ -188,8 +192,7 @@ func (in *InManga) GetChapter(name string, chapterNum float64) (chapter models.C
 	log.Println(INMANGA_CHAPTERS_INDEX_URL + chapterDB.ID)
 
 	doc.Find(".PageListClass").Each(func(i int, s *goquery.Selection) {
-		// get the value of each option
-		s.Find("option").Each(func(i int, s *goquery.Selection) {
+		s.Find("option").Each(func(i int, s *goquery.Selection) { // get the value of each option
 			pageID, _ := s.Attr("value")
 			chapter.Pages = append(chapter.Pages, models.Page{
 				Number: i + 1,

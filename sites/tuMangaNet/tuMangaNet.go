@@ -14,6 +14,10 @@ const MANGA_NET_MANGA_CLASS = ".post-title"
 
 type TuMangaNet struct{}
 
+func (tmn *TuMangaNet) SiteName() string {
+	return "tumanganet"
+}
+
 // Returns the mangas of a site that match the search
 func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Manga) (mangas []models.Manga, err error) {
 	searchStringFormated := strings.Replace(searchValue, " ", "+", -1)
@@ -32,7 +36,7 @@ func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Man
 		// For each item found, get the mangas
 		mangaName := s.Find("a").Text()
 		mangaNameJoined, _ := generalFunctions.RemoveNonAlphanumeric(mangaName)
-		mangaSite := "TuManga.net"
+		mangaSite := tmn.SiteName()
 
 		// Construct the URL
 		url, err := generalFunctions.RemoveNonAlphanumeric(mangaName)

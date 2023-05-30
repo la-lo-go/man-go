@@ -13,18 +13,22 @@ import (
 	generalFunctions "MAPIes/utils"
 )
 
-// const MANGAS_NAMES_NYAA_JSON_ROUTE = "json/mangasNamesNyaa.json"
 var myClient = &http.Client{Timeout: 5 * time.Second}
 
 var nyaaSearchJson = models.NewNyaaSearchJson()
-
-type Nyaa struct{}
 
 const NYAA_DOMAIN = "https://manganyaa.com/"
 const NYAA_GIT_RESPOSITORY = "https://raw.githubusercontent.com/saulabagnale/asdf-ma-jsons/master/"
 const NYAA_GIT_MANGAS_NAMES_JSON = "mangaNames.json"
 const NYAA_GIT_MANGA_JSON = "es.json"
 const NYAA_CAP_URI = "/leer-online-gratis-espanol/capitulo/"
+
+type Nyaa struct{}
+
+// Site name returns the name of the site IN LOWERCASE
+func (n *Nyaa) SiteName() string {
+	return "nyaa"
+}
 
 // GetMangas returns the mangas of a site that match the search
 func (n *Nyaa) GetMangas(searchValue string, searchedMangas []models.Manga) ([]models.Manga, error) {
@@ -45,7 +49,7 @@ func (n *Nyaa) GetMangas(searchValue string, searchedMangas []models.Manga) ([]m
 		for _, m := range filtered {
 			manga.Name = m.Name
 			manga.NameJoined, _ = generalFunctions.RemoveNonAlphanumeric(m.Name)
-			manga.Site = "Nyaa"
+			manga.Site = n.SiteName()
 			manga.Link = "https://manganyaa.com/" + m.JoinedName + "/leer-online-gratis-espanol"
 			mangaChaptersNumber := "99" //TODO: Get the number of chapters of the manga
 			manga.ChaptersNumber, _ = strconv.Atoi(mangaChaptersNumber)
