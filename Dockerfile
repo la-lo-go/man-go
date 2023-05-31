@@ -14,8 +14,8 @@ RUN go mod download
 COPY . .
 
 # Set environment variables for port and IP
-ENV PORT=7070
-ENV IP=0.0.0.0
+ENV API_PORT=7070
+ENV API_IP=0.0.0.0
 
 # Build the Go application
 RUN go build -o main .
