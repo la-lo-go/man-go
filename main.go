@@ -5,20 +5,20 @@ import (
 	"MAPIes/gorm"
 	"github.com/joho/godotenv"
 	"log"
+	"os"
 )
 
 func main() {
 	// Load the .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		log.Fatalln("Error loading .env")
 	}
 
 	// Create the database connection
 	gorm.Init()
 
 	// Create the router
-	err = routers.CreateRouter()
+	err := routers.CreateRouter()
 	if err != nil {
 		log.Fatal("Error creating the router")
 	}
