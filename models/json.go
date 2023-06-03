@@ -11,10 +11,6 @@ import (
 const NYAA_MANGAS_NAMES_JSON_PATH = "json/NYAA_mangasNames.json"
 const NYAA_MANGAS_NAMES_JSON_EXPIRE_TIME = 12
 
-const API_SEARCH_CACHE_JSON_PATH = "json/API_searchCache.json"
-
-const API_LINKS_MANGAS_JSON_PATH = "json/API_linksMangas.json"
-
 type Json struct {
 	Path       string `json:"path"`
 	ExpireTime int    `json:"expireTime"` // 0 = no expire
@@ -22,14 +18,6 @@ type Json struct {
 
 func NewNyaaSearchJson() *Json {
 	return newJson(NYAA_MANGAS_NAMES_JSON_PATH, NYAA_MANGAS_NAMES_JSON_EXPIRE_TIME)
-}
-
-func NewSearchCacheJson() *Json {
-	return newJson(API_SEARCH_CACHE_JSON_PATH, 0)
-}
-
-func NewLinksMangasCacheJson() *Json {
-	return newJson(API_LINKS_MANGAS_JSON_PATH, 0)
 }
 
 func newJson(path string, expireTime int) *Json {
