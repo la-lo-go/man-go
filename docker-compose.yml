@@ -2,7 +2,8 @@ version: '3.8'
 services:
   man-go:
     container_name: man-go
-    build: .
+    # build: . # uncomment this line and comment the image line to use the local image
+    image: lalogo/man-go:latest # comment this line to use the local image (uncomment the build line)
     ports:
       - "7070:7070"
     environment:
