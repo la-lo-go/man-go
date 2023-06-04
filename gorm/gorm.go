@@ -86,9 +86,9 @@ func DumpSearchToDB(searchStr string, mangas []models.Manga) {
 
 // Search the link of the manga in the database based on the name and site and return the link
 func SearchMangaLink(siteName string, mangaName string) string {
-	manga, err:= SearchManga(siteName, mangaName)
+	manga, err := SearchManga(siteName, mangaName)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error searching manga in database: ", err)
 	}
 
 	if manga.Name != "" {
@@ -132,7 +132,13 @@ func DumpMangaToDB(site string, page models.Manga) error {
 		if err != nil {
 			return err
 		}
-	} else { // If the manga is there, update it
+	} else { // If the manga is there, confirm that the chapters are the same
+		
+		// If the chapters are the same, return
+		if len(manga.Chapters) == len(page.Chapters) {
+			return nil
+		}
+
 		manga.Chapters = page.Chapters
 		err = UpdateManga(manga)
 		if err != nil {
@@ -160,17 +166,29 @@ func UpdateManga(manga models.Manga) (err error) {
 		return result.Error
 	}
 
-	db.Commit()
 	return nil
 }
 
 func FindChapterWebID(site string, name string, chapterNum float64) (chapter models.Chapter) {
-	manga, err := SearchManga(site, name)
-	if err != nil {
-		return chapter
-	}
+    manga, err := SearchManga(site, name)
+    if err != nil {
+        return chapter
+    }
 
-	db.Where("manga_id = ? AND number = ?", manga.ID, chapterNum).First(&chapter)
+    tx := db.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+        }
+    }()
 
-	return chapter
+    result := tx.Where("manga_id = ? AND number = ?", manga.ID, chapterNum).First(&chapter)
+
+    if result.Error != nil {
+        tx.Rollback()
+        return chapter
+    }
+
+    tx.Commit()
+    return chapter
 }

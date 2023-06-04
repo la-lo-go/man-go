@@ -72,7 +72,7 @@ func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga
 	siteName := in.SiteName()
 
 	mangaDBInfo, err := gorm.SearchManga(siteName, name)
-	if err == nil {
+	if err != nil {
 		return mangaDBInfo
 	}
 
