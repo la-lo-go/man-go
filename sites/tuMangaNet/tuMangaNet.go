@@ -64,7 +64,7 @@ func (tmn *TuMangaNet) GetMangas(searchValue string, searchedMangas []models.Man
 }
 
 // Returns the chapters of a manga avalible in a site
-func (tmn *TuMangaNet) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
+func (tmn *TuMangaNet) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	return mangaPage
 }
 

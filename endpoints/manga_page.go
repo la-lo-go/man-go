@@ -7,6 +7,7 @@ import (
 	"MAPIes/sites/mangaOni"
 	"MAPIes/sites/nyaa"
 	"MAPIes/sites/tuMangaNet"
+	"log"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,8 @@ func MangaPage(context *gin.Context) {
 
 	if siteObj != nil {
 		// Search the url from the site in JSON
-		url := gorm.SearchMangaURL(mangaName, site)
+		url := gorm.SearchMangaLink(site, mangaName)
+		log.Println(url)
 
 		if url != "" {
 			context.IndentedJSON(http.StatusOK, siteObj.GetMangaPage(mangaName, url))
@@ -51,6 +53,6 @@ func MangaPage(context *gin.Context) {
 		}
 
 	} else {
-		context.IndentedJSON(http.StatusNotFound, []models.MangaInfo{})
+		context.IndentedJSON(http.StatusNotFound, []models.Manga{})
 	}
 }

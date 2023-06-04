@@ -145,7 +145,7 @@ func filterMangas(searchStr string, listaMangas []NyaaSearch) []NyaaSearch {
 }
 
 // GetMangaPage returns the chapters of a manga avalible in a site
-func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
+func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	var numberParsed string
 	jsonResponse := NyaaMangaPage{}
 	urlRequest := NYAA_GIT_RESPOSITORY + "series/" + name + "/" + NYAA_GIT_MANGA_JSON
@@ -175,14 +175,14 @@ func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.MangaInfo
 				return mangaPage
 			}
 
-			mangaPage.ChaptersListed = append(mangaPage.ChaptersListed, models.ChapterListed{
+			mangaPage.Chapters = append(mangaPage.Chapters, models.Chapter{
 				Number:       float64(c.OrderNumber),
 				LinkOriginal: NYAA_DOMAIN + name + NYAA_CAP_URI + numberParsed,
 			})
 		}
 	}
 
-	mangaPage.ChaptersNumber = len(mangaPage.ChaptersListed)
+	mangaPage.ChaptersNumber = len(mangaPage.Chapters)
 
 	return mangaPage
 }

@@ -16,7 +16,7 @@ type IntSite interface {
 	GetMangas(searchStr string, searchedMangas []models.Manga) ([]models.Manga, error)
 
 	// GetMangaPage returns the info of a manga
-	GetMangaPage(name string, url string) models.MangaInfo
+	GetMangaPage(name string, url string) models.Manga
 
 	// GetChapter returns the info of a chapter
 	GetChapter(name string, chapterNum float64) models.Chapter

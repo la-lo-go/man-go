@@ -67,7 +67,7 @@ func (mmx *MangaOni) GetMangas(searchValue string, searchedMangas []models.Manga
 }
 
 // Returns the chapters of a manga avalible in a site
-func (mmx *MangaOni) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
+func (mmx *MangaOni) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	return mangaPage
 }
 

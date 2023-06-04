@@ -3,11 +3,11 @@ package inManga
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"log"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"MAPIes/gorm"
 	"MAPIes/models"
@@ -41,15 +41,16 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 	doc.Find(".manga-result").Each(func(i int, s *goquery.Selection) {
 		// Get the manga name with ID
 		mangaCoverLinkRelative, _ := s.Find("img").Attr("data-src")
-		mangaID := strings.Split(mangaCoverLinkRelative, "/thumbnails/manga/")[1]
+		mangaNameAndMangaID := strings.Split(mangaCoverLinkRelative, "/thumbnails/manga/")[1]
+		mangaID := strings.Split(mangaNameAndMangaID, "/")[1]
 
 		// Get manga attributes
 		mangaName := strings.Trim(s.Find(".m0").First().Text(), " ")
 		mangaNameJoined, _ := utils.RemoveNonAlphanumeric(strings.Trim(mangaName, " "))
 		mangaSite := in.SiteName()
-		mangaLink := "https://inmanga.com/ver/manga/" + mangaID
+		mangaLink := "https://inmanga.com/ver/manga/" + mangaNameAndMangaID
 		mangaChaptersNumber, _ := strconv.Atoi(s.Find(".icon-info text-muted").First().Text())
-		mangaCover := INMANGA_THUMBNAIL_URL + mangaID
+		mangaCover := INMANGA_THUMBNAIL_URL + mangaNameAndMangaID
 
 		mangas = append(mangas, models.Manga{
 			Name:           mangaName,
@@ -57,18 +58,25 @@ func (in *InManga) GetMangas(searchValue string, searchedMangas []models.Manga) 
 			Site:           mangaSite,
 			Link:           mangaLink,
 			ChaptersNumber: mangaChaptersNumber,
-			Cover:          mangaCover},
-		)
+			Cover:          mangaCover,
+			WebID:          mangaID,
+		})
 	})
 
 	return mangas, nil
 }
 
 // GetMangaPage Returns the chapters of a manga avalible in a site
-func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.MangaInfo) {
+func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	jsonResponse := InMangaMangaPage{}
+	siteName := in.SiteName()
 
-	mangaID := extractInMangaID(url)
+	mangaDBInfo, err := gorm.SearchManga(siteName, name)
+	if err == nil {
+		return mangaDBInfo
+	}
+
+	mangaID := mangaDBInfo.WebID
 
 	urlRequest := INMANGA_GET_ALL_URL + mangaID
 	response, err := utils.GetJsonFromGet(urlRequest)
@@ -88,29 +96,34 @@ func (in *InManga) GetMangaPage(name string, url string) (mangaPage models.Manga
 		return mangaPage
 	}
 
-	mangaPage.Name = name
-	mangaPage.Site = in.SiteName()
-	mangaPage.Cover = INMANGA_THUMBNAIL_URL + mangaID // TODO: Ver si esta bien
+	mangaPage.Name = mangaDBInfo.Name
+	mangaPage.NameJoined = name
+	mangaPage.Site = siteName
+	mangaPage.Cover = mangaDBInfo.Cover
+	mangaPage.WebID = mangaID
+	mangaPage.Link = url
 
 	for _, chapter := range jsonResponse.Data.Result {
 		// Join the manga name with the chapter number
 		chapterName := "Capítulo: " + chapter.FriendlyChapterNumber
 
-		mangaPage.ChaptersListed = append(mangaPage.ChaptersListed, models.ChapterListed{
+		mangaPage.Chapters = append(mangaPage.Chapters, models.Chapter{
 			Number:       chapter.Number,
 			Name:         chapterName,
+			Site:         siteName,
 			LinkOriginal: "https://inmanga.com/ver/manga/" + name + "/" + chapter.FriendlyChapterNumberURL + "/" + chapter.Identification,
+			WebID:        chapter.Identification,
 		})
 	}
 
-	mangaPage.ChaptersNumber = len(mangaPage.ChaptersListed)
+	mangaPage.ChaptersNumber = len(mangaPage.Chapters)
 
 	// Sort the chapters
-	sort.Slice(mangaPage.ChaptersListed, func(i, j int) bool {
-		return mangaPage.ChaptersListed[i].Number < mangaPage.ChaptersListed[j].Number
+	sort.Slice(mangaPage.Chapters, func(i, j int) bool {
+		return mangaPage.Chapters[i].Number < mangaPage.Chapters[j].Number
 	})
 
-	err = dumpMangaToDB(mangaPage)
+	err = gorm.DumpMangaToDB(in.SiteName(), mangaPage)
 	if err != nil {
 		return mangaPage
 	}
@@ -125,71 +138,22 @@ func extractInMangaID(url string) (ID string) {
 	return ID
 }
 
-func dumpMangaToDB(page models.MangaInfo) error {
-	// Search for the manga in the json if is already there
-	manga, err := searchManga(page.Name)
-	if err != nil {
-		return err
-	}
-
-	if manga.MangaName == "" { // If the manga is not there, add it
-		manga.MangaName, _ = utils.RemoveNonAlphanumeric(page.Name)
-		manga.Chapters = fromChapterListedToInMangaChapter(page.ChaptersListed)
-
-		err = gorm.AddInManga(manga)
-		if err != nil {
-			return err
-		}
-	} else { // If the manga is there, update it
-		manga.Chapters = fromChapterListedToInMangaChapter(page.ChaptersListed)
-		err = gorm.UpdateInManga(manga)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Search for the manga in inMangaChaptersJson if is already there by nameJoined
-func searchManga(name string) (manga models.InMangaManga, err error) {
-	nameJoined, err := utils.RemoveNonAlphanumeric(name)
-	if err != nil {
-		return manga, err
-	}
-
-	return gorm.SearchInManga(nameJoined)
-}
-
-func fromChapterListedToInMangaChapter(listed []models.ChapterListed) (chapters []models.InMangaChapter) {
-	for _, chapter := range listed {
-		chapters = append(chapters, models.InMangaChapter{
-			Number: chapter.Number,
-			ID:     extractInMangaID(chapter.LinkOriginal),
-		})
-	}
-
-	return chapters
-}
-
 // Returns the pages of a chapter of a manga
 func (in *InManga) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
 	chapter.Name = name
 	chapter.Site = in.SiteName()
 	chapter.Number = chapterNum
 
-	chapterDB := gorm.FindInMangaChapterID(name, chapterNum)
-	if chapterDB.ID == "" {
+	chapterDB := gorm.FindChapterWebID(in.SiteName(), name, chapterNum)
+	if chapterDB.WebID == "" {
 		return chapter
 	}
 
-	doc, err := utils.GetHtmlFromGet(INMANGA_CHAPTERS_INDEX_URL + chapterDB.ID)
+	doc, err := utils.GetHtmlFromGet(INMANGA_CHAPTERS_INDEX_URL + chapterDB.WebID)
 	if err != nil {
 		fmt.Println(err)
 		return chapter
 	}
-
-	log.Println(INMANGA_CHAPTERS_INDEX_URL + chapterDB.ID)
 
 	doc.Find(".PageListClass").Each(func(i int, s *goquery.Selection) {
 		s.Find("option").Each(func(i int, s *goquery.Selection) { // get the value of each option

@@ -27,9 +27,6 @@ func Init() {
 		&models.Manga{},
 		&models.Chapter{},
 		&models.Page{},
-		&models.InMangaManga{},
-		&models.InMangaChapter{},
-		&models.InMangaPage{},
 	)
 	if err != nil {
 		log.Panic(err)
@@ -88,15 +85,13 @@ func DumpSearchToDB(searchStr string, mangas []models.Manga) {
 }
 
 // Search the link of the manga in the database based on the name and site and return the link
-func SearchMangaURL(mangaName string, siteName string) string {
-	var manga models.Manga
+func SearchMangaLink(siteName string, mangaName string) string {
+	manga, err:= SearchManga(siteName, mangaName)
+	if err != nil {
+		log.Println(err)
+	}
 
-	// Format the manga name and site name to match the database format
-	mangaNameFormatted, _ := utils.RemoveNonAlphanumeric(mangaName)
-	siteNameFormatted := strings.ToLower(siteName)
-
-	err := db.Where("name_joined = ? AND site = ?", mangaNameFormatted, siteNameFormatted).First(&manga).Error
-	if err == nil {
+	if manga.Name != "" {
 		return manga.Link
 	}
 
@@ -104,9 +99,14 @@ func SearchMangaURL(mangaName string, siteName string) string {
 	return ""
 }
 
-func SearchInManga(name string) (manga models.InMangaManga, err error) {
-	result := db.Where("manga_name = ?", name).First(&manga)
+func SearchManga(site string, name string) (manga models.Manga, err error) {
+	site = strings.ToLower(site)
+	nameJoined, err := utils.RemoveNonAlphanumeric(name)
+	if err != nil {
+		return manga, err
+	}
 
+	result := db.Where("site = ? AND name_joined = ?", site, nameJoined).First(&manga)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return manga, nil // No error, but no manga found
@@ -117,7 +117,33 @@ func SearchInManga(name string) (manga models.InMangaManga, err error) {
 	return manga, nil
 }
 
-func AddInManga(manga models.InMangaManga) (err error) {
+func DumpMangaToDB(site string, page models.Manga) error {
+	// Search for the manga if is already there
+	manga, err := SearchManga(site, page.Name)
+	if err != nil {
+		return err
+	}
+
+	if manga.Name == "" { // If the manga is not there, add it
+		manga.Name, _ = utils.RemoveNonAlphanumeric(page.Name)
+		manga.Chapters = page.Chapters
+
+		err = AddManga(manga)
+		if err != nil {
+			return err
+		}
+	} else { // If the manga is there, update it
+		manga.Chapters = page.Chapters
+		err = UpdateManga(manga)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func AddManga(manga models.Manga) (err error) {
 	result := db.Create(&manga)
 
 	if result.Error != nil {
@@ -127,7 +153,7 @@ func AddInManga(manga models.InMangaManga) (err error) {
 	return nil
 }
 
-func UpdateInManga(manga models.InMangaManga) (err error) {
+func UpdateManga(manga models.Manga) (err error) {
 	result := db.Save(&manga)
 
 	if result.Error != nil {
@@ -138,13 +164,13 @@ func UpdateInManga(manga models.InMangaManga) (err error) {
 	return nil
 }
 
-func FindInMangaChapterID(name string, chapterNum float64) (chapter models.InMangaChapter) {
-	manga, err := SearchInManga(name)
+func FindChapterWebID(site string, name string, chapterNum float64) (chapter models.Chapter) {
+	manga, err := SearchManga(site, name)
 	if err != nil {
 		return chapter
 	}
 
-	db.Where("in_manga_manga_id = ? AND number = ?", manga.ID, chapterNum).First(&chapter)
+	db.Where("manga_id = ? AND number = ?", manga.ID, chapterNum).First(&chapter)
 
 	return chapter
 }
