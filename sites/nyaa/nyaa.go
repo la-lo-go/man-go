@@ -10,7 +10,7 @@ import (
 	"time"
 
 	models "MAPIes/models"
-	generalFunctions "MAPIes/utils"
+	"MAPIes/utils"
 )
 
 var myClient = &http.Client{Timeout: 5 * time.Second}
@@ -22,6 +22,7 @@ const NYAA_GIT_RESPOSITORY = "https://raw.githubusercontent.com/saulabagnale/asd
 const NYAA_GIT_MANGAS_NAMES_JSON = "mangaNames.json"
 const NYAA_GIT_MANGA_JSON = "es.json"
 const NYAA_CAP_URI = "/leer-online-gratis-espanol/capitulo/"
+const NYAA_IMAGE_START_URL = "https://content.manganyaa.com/file/mnyaaa/"
 
 type Nyaa struct{}
 
@@ -48,12 +49,12 @@ func (n *Nyaa) GetMangas(searchValue string, searchedMangas []models.Manga) ([]m
 
 		for _, m := range filtered {
 			manga.Name = m.Name
-			manga.NameJoined, _ = generalFunctions.RemoveNonAlphanumeric(m.Name)
+			manga.NameJoined, _ = utils.RemoveNonAlphanumeric(m.Name)
 			manga.Site = n.SiteName()
 			manga.Link = "https://manganyaa.com/" + m.JoinedName + "/leer-online-gratis-espanol"
 			mangaChaptersNumber := "99" //TODO: Get the number of chapters of the manga
 			manga.ChaptersNumber, _ = strconv.Atoi(mangaChaptersNumber)
-			manga.Cover = `https://content.manganyaa.com/file/mnyaaa/` + m.JoinedName + `/description/1.jpg`
+			manga.Cover = NYAA_IMAGE_START_URL + m.JoinedName + `/description/1.jpg`
 
 			mangasReturn = append(mangasReturn, *manga)
 		}
@@ -147,10 +148,11 @@ func filterMangas(searchStr string, listaMangas []NyaaSearch) []NyaaSearch {
 // GetMangaPage returns the chapters of a manga avalible in a site
 func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	var numberParsed string
+	siteName := n.SiteName()
 	jsonResponse := NyaaMangaPage{}
 	urlRequest := NYAA_GIT_RESPOSITORY + "series/" + name + "/" + NYAA_GIT_MANGA_JSON
 
-	response, err := generalFunctions.GetJsonFromGet(urlRequest)
+	response, err := utils.GetJsonFromGet(urlRequest)
 
 	if err != nil {
 		fmt.Println(err)
@@ -164,6 +166,10 @@ func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 	}
 
 	mangaPage.Name = jsonResponse.MangaName
+	mangaPage.NameJoined, _ = utils.RemoveNonAlphanumeric(jsonResponse.MangaName)
+	mangaPage.Site = siteName
+	mangaPage.Link = url
+	mangaPage.Cover = "https://content.manganyaa.com/file/mnyaaa/" + mangaPage.NameJoined + "/description/1.jpg"
 
 	// append to mangaPage.ChaptersListed only the jsonResponse.Chapters that are not 0
 	for _, c := range jsonResponse.Chs {
@@ -176,6 +182,8 @@ func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 			}
 
 			mangaPage.Chapters = append(mangaPage.Chapters, models.Chapter{
+				Name:         mangaPage.Name,
+				Site:         siteName,
 				Number:       float64(c.OrderNumber),
 				LinkOriginal: NYAA_DOMAIN + name + NYAA_CAP_URI + numberParsed,
 			})
@@ -189,5 +197,39 @@ func (n *Nyaa) GetMangaPage(name string, url string) (mangaPage models.Manga) {
 
 // Returns the pages of a chapter of a manga
 func (n *Nyaa) GetChapter(name string, chapterNum float64) (chapter models.Chapter) {
+	siteName := n.SiteName()
+	jsonResponse := NyaaMangaPage{}
+	urlRequest := NYAA_GIT_RESPOSITORY + "series/" + name + "/" + NYAA_GIT_MANGA_JSON
+
+	response, err := utils.GetJsonFromGet(urlRequest)
+
+	if err != nil {
+		fmt.Println(err)
+		return chapter
+	}
+
+	err = json.Unmarshal([]byte(response), &jsonResponse)
+	if err != nil {
+		fmt.Println(err, urlRequest)
+		return chapter
+	}
+
+	// Find the chapter in the jsonResponse.ch
+	for _, c := range jsonResponse.Chs {
+		if c.OrderNumber == chapterNum {
+			chapter.Name = name
+			chapter.Site = siteName
+			chapter.Number = float64(c.OrderNumber)
+			chapter.LinkOriginal = NYAA_DOMAIN + name + NYAA_CAP_URI + fmt.Sprint(c.OrderNumber)
+
+			for i := 1; i <= c.Pages; i++ {
+				chapter.Pages = append(chapter.Pages, models.Page{
+					Number: i,
+					Link:   NYAA_IMAGE_START_URL + name + "/es/" + fmt.Sprint(c.OrderNumber) + "/" + fmt.Sprint(i) + ".jpg",
+				})
+			}
+		}
+	}
+
 	return chapter
 }
